@@ -31,6 +31,13 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
     ln -sf /usr/bin/python3.11 /usr/bin/python3
 
+# Install Miniconda for fast flash-attn installation
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
+    bash /tmp/miniconda.sh -b -p /opt/conda && \
+    rm /tmp/miniconda.sh
+
+ENV PATH=/opt/conda/bin:${PATH}
+
 # Install pip for Python 3.11
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.11 get-pip.py && \
@@ -54,8 +61,8 @@ RUN python3.11 -m pip install torch torchvision --index-url https://download.pyt
 # Install remaining dependencies
 RUN python3.11 -m pip install transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0
 
-# Try to install flash-attn (optional, won't fail if compilation fails)
-RUN python3.11 -m pip install flash-attn --no-build-isolation || echo "flash-attn installation failed, will use native backends"
+# Install flash-attn via conda (much faster than compiling)
+RUN conda install -y -c conda-forge flash-attn || echo "flash-attn installation failed, will use native backends"
 
 # Install the project in development mode
 RUN python3.11 -m pip install -e . --no-build-isolation
