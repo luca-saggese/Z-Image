@@ -8,7 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     TORCH_HOME=/huggingface/torch \
     HF_HOME=/huggingface \
-    ZIMAGE_ATTENTION="_native_flash"
+    ZIMAGE_ATTENTION="_native_flash" \
+    CUDA_HOME=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -45,14 +48,14 @@ RUN mkdir -p /huggingface /app/ckpts
 # Install Python dependencies using Python 3.11
 RUN python3.11 -m pip install --upgrade pip setuptools wheel
 
-# Install PyTorch first (required by flash-attn build)
-RUN python3.11 -m pip install torch>=2.5.0
+# Install PyTorch with CUDA support
+RUN python3.11 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
 # Install remaining dependencies
 RUN python3.11 -m pip install transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0
 
-# Install flash-attn after torch is available
-RUN python3.11 -m pip install flash-attn --no-build-isolation
+# Try to install flash-attn (optional, won't fail if compilation fails)
+RUN python3.11 -m pip install flash-attn --no-build-isolation || echo "flash-attn installation failed, will use native backends"
 
 # Install the project in development mode
 RUN python3.11 -m pip install -e . --no-build-isolation
