@@ -38,8 +38,8 @@ RUN mkdir -p /app/models/torch /app/models/huggingface /app/ckpts
 
 # Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -e . && \
-    pip install gradio>=4.0.0
+    pip install torch>=2.5.0 transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0 && \
+    pip install -e . --no-build-isolation
 
 # Expose Gradio port
 EXPOSE 7860
