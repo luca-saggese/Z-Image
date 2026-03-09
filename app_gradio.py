@@ -27,10 +27,11 @@ def initialize_model():
     
     print("Loading Z-Image model...")
     
-    # Device selection priority: cuda -> tpu -> mps -> cpu
+    # Force CUDA if available
     if torch.cuda.is_available():
         device = "cuda"
         print(f"Using device: cuda (GPU: {torch.cuda.get_device_name(0)})")
+        torch.cuda.empty_cache()
     else:
         try:
             import torch_xla
@@ -48,15 +49,29 @@ def initialize_model():
     # Load model weights
     model_path = ensure_model_weights("ckpts/Z-Image-Turbo", verify=False)
     
-    # Load components
-    dtype = torch.bfloat16
-    components = load_from_local_dir(model_path, device=device, dtype=dtype, compile=False)
+    # Load components with compilation for speed
+    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    enable_compile = torch.cuda.is_available()  # Only compile on GPU
+    components = load_from_local_dir(model_path, device=device, dtype=dtype, compile=enable_compile)
     
-    # Set attention backend
-    attn_backend = os.environ.get("ZIMAGE_ATTENTION", "_native_flash")
-    AttentionBackend.print_available_backends()
-    set_attention_backend(attn_backend)
-    print(f"Attention backend: {attn_backend}")
+    # Verify model is on GPU
+    if torch.cuda.is_available():
+        print(f"Model loaded on GPU")
+        print(f"GPU Memory allocated: {torch.cuda.memory_allocated() / 1024**3:.1f} GB")
+        print(f"GPU Memory reserved: {torch.cuda.memory_reserved() / 1024**3:.1f} GB")
+    
+    # Try different attention backends in order
+    attention_backends = ["_flash_3", "_native_flash", "flash", "native"]
+    
+    for backend in attention_backends:
+        try:
+            set_attention_backend(backend)
+            print(f"✓ Using attention backend: {backend}")
+            break
+        except Exception as e:
+            print(f"✗ {backend} not available: {e}")
+            continue
+    
     print("Model loaded successfully!")
 
 
@@ -78,6 +93,11 @@ def generate_image(
         return None, "Please enter a prompt"
     
     try:
+        # Check GPU status
+        if torch.cuda.is_available():
+            print(f"\n🎨 Starting generation on {torch.cuda.get_device_name(0)}")
+            print(f"GPU Memory before: {torch.cuda.memory_allocated() / 1024**3:.1f} GB / {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+        
         start_time = time.time()
         
         # Generate image
@@ -94,11 +114,18 @@ def generate_image(
         end_time = time.time()
         generation_time = end_time - start_time
         
+        if torch.cuda.is_available():
+            print(f"GPU Memory after: {torch.cuda.memory_allocated() / 1024**3:.1f} GB")
+            torch.cuda.empty_cache()
+        
         # Return image and generation info
         status_msg = f"✅ Image generated in {generation_time:.2f} seconds"
         return images[0], status_msg
         
     except Exception as e:
+        import traceback
+        print(f"Generation error: {e}")
+        traceback.print_exc()
         return None, f"❌ Error: {str(e)}"
 
 
