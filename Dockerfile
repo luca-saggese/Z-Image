@@ -6,8 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    TORCH_HOME=/app/models/torch \
-    HF_HOME=/app/models/huggingface \
+    TORCH_HOME=/huggingface/torch \
+    HF_HOME=/huggingface \
     ZIMAGE_ATTENTION="_native_flash"
 
 # Install system dependencies
@@ -40,7 +40,7 @@ WORKDIR /app
 COPY . .
 
 # Create directories for model weights
-RUN mkdir -p /app/models/torch /app/models/huggingface /app/ckpts
+RUN mkdir -p /huggingface /app/ckpts
 
 # Install Python dependencies using Python 3.11
 RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
