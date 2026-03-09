@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  z-image-gradio:
+    image: z-image-gradio:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: z-image-gradio
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./ckpts:/app/ckpts
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+    environment:
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - ZIMAGE_ATTENTION=_native_flash
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: 16gb
+    stdin_open: true
+    tty: true
+    command: python app_gradio.py
