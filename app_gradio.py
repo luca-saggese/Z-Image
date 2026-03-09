@@ -1,8 +1,10 @@
 """Gradio interface for Z-Image generation."""
 
 import os
+import sys
 import time
 import warnings
+import signal
 
 import gradio as gr
 import torch
@@ -18,6 +20,17 @@ components = None
 device = None
 
 
+def signal_handler(sig, frame):
+    """Handle termination signals gracefully."""
+    print("\n⚠️ Received signal, shutting down gracefully...")
+    sys.exit(0)
+
+
+# Register signal handlers
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
+
 def initialize_model():
     """Initialize and cache the model components."""
     global components, device
@@ -26,6 +39,7 @@ def initialize_model():
         return  # Already initialized
     
     print("Loading Z-Image model...")
+    sys.stdout.flush()
     
     # Force CUDA if available
     if torch.cuda.is_available():
@@ -46,19 +60,25 @@ def initialize_model():
                 device = "cpu"
                 print("Using device: cpu")
     
+    sys.stdout.flush()
+    
     # Load model weights
     model_path = ensure_model_weights("ckpts/Z-Image-Turbo", verify=False)
     
-    # Load components with compilation for speed
+    # Load components WITHOUT compilation (torch.compile can cause issues on some GPUs)
     dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-    enable_compile = torch.cuda.is_available()  # Only compile on GPU
-    components = load_from_local_dir(model_path, device=device, dtype=dtype, compile=enable_compile)
+    print(f"Loading model with dtype={dtype}, compile=False")
+    sys.stdout.flush()
+    
+    components = load_from_local_dir(model_path, device=device, dtype=dtype, compile=False)
     
     # Verify model is on GPU
     if torch.cuda.is_available():
         print(f"Model loaded on GPU")
         print(f"GPU Memory allocated: {torch.cuda.memory_allocated() / 1024**3:.1f} GB")
         print(f"GPU Memory reserved: {torch.cuda.memory_reserved() / 1024**3:.1f} GB")
+    
+    sys.stdout.flush()
     
     # Try different attention backends in order
     attention_backends = ["_flash_3", "_native_flash", "flash", "native"]
@@ -67,12 +87,15 @@ def initialize_model():
         try:
             set_attention_backend(backend)
             print(f"✓ Using attention backend: {backend}")
+            sys.stdout.flush()
             break
         except Exception as e:
             print(f"✗ {backend} not available: {e}")
+            sys.stdout.flush()
             continue
     
     print("Model loaded successfully!")
+    sys.stdout.flush()
 
 
 def generate_image(
@@ -96,11 +119,19 @@ def generate_image(
         # Check GPU status
         if torch.cuda.is_available():
             print(f"\n🎨 Starting generation on {torch.cuda.get_device_name(0)}")
+            sys.stdout.flush()
             print(f"GPU Memory before: {torch.cuda.memory_allocated() / 1024**3:.1f} GB / {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            sys.stdout.flush()
         
         start_time = time.time()
+        print(f"Prompt: {prompt[:100]}...")
+        print(f"Steps: {num_inference_steps}, Guidance: {guidance_scale}, Seed: {seed}")
+        sys.stdout.flush()
         
         # Generate image
+        print("Calling generate() function...")
+        sys.stdout.flush()
+        
         images = generate(
             prompt=prompt,
             **components,
@@ -111,11 +142,15 @@ def generate_image(
             generator=torch.Generator(device).manual_seed(seed),
         )
         
+        print("✅ Generation completed successfully!")
+        sys.stdout.flush()
+        
         end_time = time.time()
         generation_time = end_time - start_time
         
         if torch.cuda.is_available():
             print(f"GPU Memory after: {torch.cuda.memory_allocated() / 1024**3:.1f} GB")
+            sys.stdout.flush()
             torch.cuda.empty_cache()
         
         # Return image and generation info
@@ -124,8 +159,9 @@ def generate_image(
         
     except Exception as e:
         import traceback
-        print(f"Generation error: {e}")
+        print(f"\n❌ Generation error: {e}")
         traceback.print_exc()
+        sys.stdout.flush()
         return None, f"❌ Error: {str(e)}"
 
 
