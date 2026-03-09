@@ -31,10 +31,6 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
     ln -sf /usr/bin/python3.11 /usr/bin/python3
 
-# Install Miniconda for fast flash-attn installation
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p /opt/conda && \
-    rm /tmp/miniconda.sh
 
 ENV PATH=/opt/conda/bin:${PATH}
 
