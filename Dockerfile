@@ -61,8 +61,8 @@ RUN python3.11 -m pip install torch torchvision --index-url https://download.pyt
 # Install remaining dependencies
 RUN python3.11 -m pip install transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0
 
-# Install flash-attn via conda (much faster than compiling)
-RUN conda install -y -c conda-forge flash-attn || echo "flash-attn installation failed, will use native backends"
+# Try to install flash-attn (optional, won't fail if compilation fails)
+RUN python3.11 -m pip install flash-attn==2.6.1 --no-build-isolation || echo "flash-attn installation failed, will use native backends"
 
 # Install the project in development mode
 RUN python3.11 -m pip install -e . --no-build-isolation
