@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     python3.11 \
     python3.11-venv \
     python3.11-dev \
-    pip \
+    python3.11-distutils \
     git \
     curl \
     wget \
@@ -25,7 +25,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set python3.11 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3
+
+# Install pip for Python 3.11
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.11 get-pip.py && \
+    rm get-pip.py
 
 # Create app directory
 WORKDIR /app
@@ -36,10 +42,10 @@ COPY . .
 # Create directories for model weights
 RUN mkdir -p /app/models/torch /app/models/huggingface /app/ckpts
 
-# Install Python dependencies
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install torch>=2.5.0 transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0 && \
-    pip install -e . --no-build-isolation
+# Install Python dependencies using Python 3.11
+RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
+    python3.11 -m pip install torch>=2.5.0 transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0 && \
+    python3.11 -m pip install -e . --no-build-isolation
 
 # Expose Gradio port
 EXPOSE 7860
