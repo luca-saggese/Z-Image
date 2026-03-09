@@ -217,8 +217,33 @@ def ensure_model_weights(
         if len(corrupted_files) > 10:
             logger.error(f"  ... and {len(corrupted_files) - 10} more")
     
-    # Download model weights
-    logger.info(f"\nAttempting to download from {repo_id}...")
+    # Try Hugging Face cache first (HF_HOME / default hub cache)
+    logger.info(f"\nResolving model from Hugging Face cache for {repo_id}...")
+    try:
+        cached_snapshot = snapshot_download(
+            repo_id=repo_id,
+            resume_download=True,
+        )
+        cached_dir = Path(cached_snapshot)
+        logger.success(f"✓ Using Hugging Face snapshot cache: {cached_dir}")
+
+        if manifest:
+            all_valid_cache, missing_cache, corrupted_cache = verify_file_integrity(
+                cached_dir, manifest, verify_checksums=verify
+            )
+            if all_valid_cache:
+                return cached_dir
+
+            logger.warning(
+                f"Cached snapshot incomplete/corrupted (missing={len(missing_cache)}, corrupted={len(corrupted_cache)})."
+            )
+        else:
+            return cached_dir
+    except Exception as cache_error:
+        logger.warning(f"Could not resolve Hugging Face snapshot cache: {cache_error}")
+
+    # Fallback: download directly into local model path (legacy behavior)
+    logger.info(f"Attempting legacy local download to: {target_dir}")
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
         snapshot_download(

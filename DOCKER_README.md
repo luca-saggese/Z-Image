@@ -61,6 +61,7 @@ docker run --rm \
   --gpus all \
   -p 7860:7860 \
   -v $(pwd)/ckpts:/app/ckpts \
+  -v $(pwd)/huggingface:/huggingface \
   -v $(pwd)/models:/app/models \
   --shm-size=16gb \
   z-image-gradio:latest
@@ -99,9 +100,9 @@ L'interfaccia Gradio offre:
 - Optimization: Flash Attention v3 per massima velocità
 
 ### Storage
-- Modelli cachati in `/app/models/huggingface/`
+- Cache Hugging Face in `HF_HOME=/huggingface/`
 - Checkpoint PyTorch in `/app/models/torch/`
-- Volume montato in `./models/` locale per persistenza
+- Volume `./huggingface/` montato per persistenza cache tra riavvii container
 
 ### Configurazione GPU
 - Allocazione dinamica memoria CUDA

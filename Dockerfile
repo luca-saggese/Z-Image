@@ -59,7 +59,7 @@ RUN python3.11 -m pip install transformers>=4.51.0 safetensors loguru pillow acc
 
 # Try to install Flash Attention 3 from prebuilt wheel (aarch64), fallback to flash-attn v2
 RUN if [ "$(uname -m)" = "aarch64" ]; then \
-            python3.11 -m pip install "https://huggingface.co/datasets/malaysia-ai/Flash-Attention3-wheel/blob/main/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64-2.7.1-12.8.whl" \
+            python3.11 -m pip install "https://huggingface.co/datasets/malaysia-ai/Flash-Attention3-wheel/resolve/main/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64-2.7.1-12.8.whl" \
             || (echo "Flash Attention 3 wheel install failed, trying flash-attn==2.8.3" && python3.11 -m pip install flash-attn==2.8.3) \
             || echo "flash-attn installation failed, will use native backends"; \
         else \

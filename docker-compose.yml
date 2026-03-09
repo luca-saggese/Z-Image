@@ -13,6 +13,7 @@ services:
       - ./ckpts:/app/ckpts
       - ./models:/app/models
       - ./outputs:/app/outputs
+      - ./huggingface:/huggingface
     environment:
       - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
       - ZIMAGE_ATTENTION=_native_flash

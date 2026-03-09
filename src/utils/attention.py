@@ -511,6 +511,33 @@ def set_attention_backend(backend: Union[str, AttentionBackend, None]):
 
         if backend is not None:
             backend = str(backend)
+
+            if backend == AttentionBackend.FLASH_3 and not _CAN_USE_FLASH_ATTN_3:
+                raise RuntimeError(f"Backend '{AttentionBackend.FLASH_3}' requires Flash Attention 3 beta.")
+
+            if backend == AttentionBackend.FLASH_VARLEN_3 and not _CAN_USE_FLASH_ATTN_3:
+                raise RuntimeError(f"Backend '{AttentionBackend.FLASH_VARLEN_3}' requires Flash Attention 3 beta.")
+
+            if backend in (AttentionBackend.FLASH, AttentionBackend.FLASH_VARLEN) and not _CAN_USE_FLASH_ATTN_2:
+                raise RuntimeError(f"Backend '{backend}' requires flash-attn.")
+
+            if backend == AttentionBackend.MPS_FLASH and not _CAN_USE_MPS_FLASH:
+                raise RuntimeError(
+                    f"Backend '{AttentionBackend.MPS_FLASH}' requires mps-flash-attn on Apple Silicon."
+                )
+
+            if backend in (
+                AttentionBackend.FLASH,
+                AttentionBackend.FLASH_VARLEN,
+                AttentionBackend.FLASH_3,
+                AttentionBackend.FLASH_VARLEN_3,
+                AttentionBackend.NATIVE_FLASH,
+            ) and not torch.cuda.is_available():
+                raise RuntimeError(f"Backend '{backend}' requires CUDA.")
+
+            if backend == AttentionBackend.MPS_FLASH and not torch.backends.mps.is_available():
+                raise RuntimeError(f"Backend '{backend}' requires MPS.")
+
         ZImageAttention._attention_backend = backend
     except ImportError:
         pass

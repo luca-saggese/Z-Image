@@ -80,8 +80,10 @@ def initialize_model():
     
     sys.stdout.flush()
     
-    # Try different attention backends in order
-    attention_backends = ["_flash_3", "_native_flash", "flash", "native"]
+    # Try attention backends (env preferred, then safe fallbacks)
+    preferred_backend = os.environ.get("ZIMAGE_ATTENTION", "_native_flash")
+    attention_backends = [preferred_backend, "_flash_3", "_native_flash", "flash", "native"]
+    attention_backends = list(dict.fromkeys(attention_backends))
     
     for backend in attention_backends:
         try:
