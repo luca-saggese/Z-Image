@@ -43,9 +43,19 @@ COPY . .
 RUN mkdir -p /huggingface /app/ckpts
 
 # Install Python dependencies using Python 3.11
-RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
-    python3.11 -m pip install torch>=2.5.0 transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0 flash-attn && \
-    python3.11 -m pip install -e . --no-build-isolation
+RUN python3.11 -m pip install --upgrade pip setuptools wheel
+
+# Install PyTorch first (required by flash-attn build)
+RUN python3.11 -m pip install torch>=2.5.0
+
+# Install remaining dependencies
+RUN python3.11 -m pip install transformers>=4.51.0 safetensors loguru pillow accelerate huggingface_hub>=0.25.0 gradio>=4.0.0
+
+# Install flash-attn after torch is available
+RUN python3.11 -m pip install flash-attn --no-build-isolation
+
+# Install the project in development mode
+RUN python3.11 -m pip install -e . --no-build-isolation
 
 # Expose Gradio port
 EXPOSE 7860
